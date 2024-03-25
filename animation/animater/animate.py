@@ -183,7 +183,7 @@ class GenerativeMotion(PrimaryModels):
                 timesteps=time_steps,
             )
         if preview:
-            fps = validation_data.get('fps', 8)
+            fps = validation_data.get('fps')
             imageio.mimwrite(out_file, video_frames, duration=int(1000 / fps), loop=0)
             imageio.mimwrite(out_file.replace('gif', '.mp4'), video_frames, fps=fps)
         real_motion_strength = calculate_latent_motion_score(video_latents).cpu().numpy()[0]
@@ -251,10 +251,12 @@ class GenerativeMotion(PrimaryModels):
 
         # Move text encoders, and VAE to GPU
         models_to_cast = [text_encoder, unet, vae]
+        output_path = os.path.join(os.getcwd(), 'output')
+        os.makedirs(output_path, exist_ok=True)
         self.cast_to_gpu_and_type(models_to_cast, torch.device("cuda") if torch.cuda.is_available() else 'cpu',
                                   weight_dtype)
         self.batch_eval(unet, text_encoder, vae, vae_processor, self.pretrained_model_path,
-                        validation_data, "../../output/demo", True)
+                        validation_data, output_path, True)
 
 
 if __name__ == "__main__":

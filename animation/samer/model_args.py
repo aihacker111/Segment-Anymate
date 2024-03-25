@@ -1,18 +1,3 @@
-# Explanation of generator_args is in sam/segment_anything/automatic_mask_generator.py: SamAutomaticMaskGenerator
-# sam_args = {
-#         'sam_checkpoint': "ckpt/sam_vit_b.pth",
-#         'model_type': "vit_b",
-#         'generator_args':{
-#             'points_per_side': 16,
-#             'pred_iou_thresh': 0.8,
-#             'stability_score_thresh': 0.9,
-#             'crop_n_layers': 1,
-#             'crop_n_points_downscale_factor': 2,
-#             'min_mask_region_area': 200,
-#         },
-#         'gpu_id': 0,
-#     }
-
 def generate_sam_args(sam_checkpoint="ckpt", model_type="vit_b", points_per_side=16,
                       pred_iou_thresh=0.8, stability_score_thresh=0.9, crop_n_layers=1,
                       crop_n_points_downscale_factor=2, min_mask_region_area=200, gpu_id=0):

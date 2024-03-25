@@ -10,7 +10,7 @@ import PIL
 import torch
 import sys
 
-sys.path.insert(0, './animation/animater')
+sys.path.insert(0, './Segment-Anymate/animation/animater')
 
 
 class LatentToVideoPipeline(TextToVideoSDPipeline):
@@ -207,14 +207,14 @@ class LatentToVideoPipeline(TextToVideoSDPipeline):
         if output_type == "pt":
             video = video_tensor
         else:
-            video = tensor2vid(video_tensor)
+            video = tensor2vid(video_tensor, self.image_processor)
 
         # Offload last model to CPU
         if hasattr(self, "final_offload_hook") and self.final_offload_hook is not None:
             self.final_offload_hook.offload()
 
         if not return_dict:
-            return (video, latents)
+            return video, latents
 
         return TextToVideoSDPipelineOutput(frames=video)
 

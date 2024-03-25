@@ -55,7 +55,7 @@ class AnimateController:
                 tar.extractall(path=ld_models_path)
             print("Extraction complete.")
             if os.path.exists(ld_models_name):
-                shutil.rmtree(ld_models_name)
+                os.remove(ld_models_name)
             return "Download complete."
         else:
             return "Models are downloaded"
@@ -233,7 +233,6 @@ class AnimateLaunch(AnimateController):
                 ]
             )
 
-            # -------------- Input com_pont -------------
             tab_image_input.select(
                 fn=self.clean,
                 inputs=[],
@@ -245,8 +244,6 @@ class AnimateLaunch(AnimateController):
                     click_stack,
                 ]
             )
-
-            # ------------------- Interactive component -----------------
 
             tab_click.select(
                 fn=self.init_segment,
@@ -292,13 +289,6 @@ class AnimateLaunch(AnimateController):
                 inputs=[models_download],
                 outputs=[models_download]
             )
-            with gr.Tab(label='Image example'):
-                gr.Examples(
-                    examples=[
-                        os.path.join(os.path.dirname(__file__), "assets", "gradio.jpg"),
-                    ],
-                    inputs=[input_image],
-                )
 
         app.queue(concurrency_count=1)
         app.launch(debug=True, share=True)

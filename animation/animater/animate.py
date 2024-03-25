@@ -152,6 +152,7 @@ class GenerativeMotion(PrimaryModels):
             mask = mask.resize((validation_data['width'], validation_data['height']))
             np_mask = np.array(mask)
             np_mask[np_mask != 0] = 255
+            np_mask = np_mask.astype('uint8')
         else:
             np_mask = np.ones([validation_data['height'], validation_data['width']], dtype=np.uint8) * 255
         out_mask_path = os.path.splitext(out_file)[0] + "_mask.jpg"

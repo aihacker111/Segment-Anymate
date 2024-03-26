@@ -160,7 +160,8 @@ class AnimateController:
     def run(self, image, text):
         _, img_name = self.read_temp_file(image)
         _, pretrained_models_path = self.get_models_path()
-        generative_motion = GenerativeMotion(pretrained_model_path=pretrained_models_path, prompt_image=img_name, prompt=text,
+        generative_motion = GenerativeMotion(pretrained_model_path=pretrained_models_path, prompt_image=img_name,
+                                             prompt=text,
                                              mask=self.save_mask(refined_mask=None))
         generative_motion.render()
         return 'Rendering...'
@@ -185,44 +186,53 @@ class AnimateLaunch(AnimateController):
             click_stack = gr.State([[], []])  # Storage clicks status
             origin_frame = gr.State(None)
             segment = gr.State(None)
-            render_status = gr.Textbox(label='Render Status')
-            prompt_text = gr.Textbox(label='Text Prompt')
-            models_download = gr.Textbox(label='Models Download Status')
+
             with gr.Row():
-                with gr.Column(scale=1):
+                with gr.Column():
                     tab_image_input = gr.Tab(label="Image type input")
                     with tab_image_input:
                         input_image = gr.File(label='Input image')
+                    tab_click = gr.Tab(label="Segment Anything Setting")
+                    models_download = gr.Textbox(label='Models Download Status')
+                    click_download = gr.Button(
+                        value='Download Models',
+                        interactive=True
+                    )
+                with tab_click:
+                    with gr.Row():
+                        point_mode = gr.Radio(
+                            choices=["Positive", "Negative"],
+                            value="Positive",
+                            label="Point Prompt",
+                            interactive=True)
 
-                    input_first_frame = gr.Image(label='Segment result', interactive=True)
-                    input_first_frame.style(height=550)
-                    tab_click = gr.Tab(label="Click")
-                    with tab_click:
-                        with gr.Row():
-                            point_mode = gr.Radio(
-                                choices=["Positive", "Negative"],
-                                value="Positive",
-                                label="Point Prompt",
-                                interactive=True)
+                        click_undo_but = gr.Button(
+                            value="Undo",
+                            interactive=True
+                        )
+                        with gr.Accordion("aot advanced options", open=False):
+                            long_term_mem = gr.Slider(label="long term memory gap", minimum=1, maximum=9999,
+                                                      value=9999, step=1)
+                            max_len_long_term = gr.Slider(label="max len of long term memory", minimum=1,
+                                                          maximum=9999, value=9999, step=1)
 
-                            click_undo_but = gr.Button(
-                                value="Undo",
-                                interactive=True
-                            )
-                            click_render = gr.Button(
-                                value='Render',
-                                interactive=True
-                            )
-                            click_download = gr.Button(
-                                value='Download Models',
-                                interactive=True
-                            )
-                            with gr.Accordion("aot advanced options", open=False):
-                                long_term_mem = gr.Slider(label="long term memory gap", minimum=1, maximum=9999,
-                                                          value=9999, step=1)
-                                max_len_long_term = gr.Slider(label="max len of long term memory", minimum=1,
-                                                              maximum=9999, value=9999, step=1)
-
+                with gr.Column(scale=1):
+                    with gr.Row():
+                        input_first_frame = gr.Image(label='Segment Result', interactive=True).style(height=350)
+                        output_video = gr.File(label="Predicted Video").style(height=350)
+                    with gr.Row():
+                        prompt_text = gr.Textbox(label='Text Prompt')
+                    with gr.Row():
+                        click_render = gr.Button(
+                            value='Render',
+                            interactive=True
+                        )
+                    # with gr.Column(scale=1):
+                        # models_download = gr.Textbox(label='Models Download Status').style(width=550)
+                        # click_download = gr.Button(
+                        #     value='Download Models',
+                        #     interactive=True
+                        # )
             input_image.change(
                 fn=self.get_meta_from_image,
                 inputs=[
@@ -281,7 +291,7 @@ class AnimateLaunch(AnimateController):
                 inputs=[input_image,
                         prompt_text],
                 outputs=[
-                    render_status
+                    output_video
                 ]
             )
             click_download.click(

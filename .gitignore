@@ -1,5 +1,7 @@
 __pycache__
 .idea
+root_model/ld_models
+root_model/sam_models
 *.pyc
 debug
 

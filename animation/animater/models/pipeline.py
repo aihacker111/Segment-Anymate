@@ -112,7 +112,7 @@ class LatentToVideoPipeline(TextToVideoSDPipeline):
         width = width or self.unet.config.sample_size * self.vae_scale_factor
 
         num_images_per_prompt = 1
-
+        image_processor = self.image_processor
         # 1. Check inputs. Raise error if not correct
         self.check_inputs(
             prompt, height, width, callback_steps, negative_prompt, prompt_embeds, negative_prompt_embeds
@@ -207,7 +207,7 @@ class LatentToVideoPipeline(TextToVideoSDPipeline):
         if output_type == "pt":
             video = video_tensor
         else:
-            video = tensor2vid(video_tensor, self.image_processor)
+            video = tensor2vid(video_tensor)
 
         # Offload last model to CPU
         if hasattr(self, "final_offload_hook") and self.final_offload_hook is not None:

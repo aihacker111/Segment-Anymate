@@ -161,11 +161,11 @@ class GenerativeMotion(PrimaryModels):
         initial_latents, time_steps = DDPM_forward_timesteps(input_image_latents, forward_t,
                                                             validation_data['num_frames'],
                                                             diffusion_scheduler)
-        mask = T.ToTensor()(np_mask).to(dtype).to(device)
+        masks = T.ToTensor()(np_mask).to(dtype).to(device)
         # b,c,f,h,w
         _, _, _, h, w = initial_latents.shape
-        mask = T.Resize([h, w], antialias=False)(mask)
-        mask = rearrange(mask, 'b h w -> b 1 1 h w')
+        masks = T.Resize([h, w], antialias=False)(masks)
+        masks = rearrange(masks, 'b h w -> b 1 1 h w')
         motion_strength = validation_data.get("strength", index + 3)
         with torch.no_grad():
             video_frames, video_latents = pipeline(
@@ -177,13 +177,13 @@ class GenerativeMotion(PrimaryModels):
                 num_inference_steps=validation_data['num_inference_steps'],
                 guidance_scale=validation_data['guidance_scale'],
                 condition_latent=input_image_latents,
-                mask=mask,
+                mask=masks,
                 motion=[motion_strength],
                 return_dict=False,
                 timesteps=time_steps,
             )
         if preview:
-            fps = validation_data.get('fps')
+            fps = validation_data['fps']
             imageio.mimwrite(out_file, video_frames, duration=int(1000 / fps), loop=0)
             imageio.mimwrite(out_file.replace('gif', '.mp4'), video_frames, fps=fps)
         real_motion_strength = calculate_latent_motion_score(video_latents).cpu().numpy()[0]
@@ -226,7 +226,7 @@ class GenerativeMotion(PrimaryModels):
 
     def render(
             self,
-            enable_xformers_memory_efficient_attention: bool = True,
+            enable_xformers_memory_efficient_attention: bool = False,
             enable_torch_2_attn: bool = False,
             seed=None
     ):

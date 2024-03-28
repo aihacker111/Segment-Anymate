@@ -12,24 +12,24 @@ import sys
 import os
 
 
-# sys.path.insert(0, './Segment-Anymate/animation/animater')
-def update_sys_path():
-    """
-    Update sys.path based on the environment.
-    """
-    # Check if running in Colab
-    if 'google.colab' in sys.modules:
-        directory_path = '/Segment-Anymate/animation/animater'
-    else:
-        directory_path = 'animation/animater'
-
-    # Update sys.path if the directory exists
-    if os.path.exists(directory_path):
-        sys.path.insert(0, directory_path)
-
-
-# Call the function to update sys.path
-update_sys_path()
+sys.path.insert(0, './Segment-Anymate/animation/animater')
+# def update_sys_path():
+#     """
+#     Update sys.path based on the environment.
+#     """
+#     # Check if running in Colab
+#     if 'google.colab' in sys.modules:
+#         directory_path = '/Segment-Anymate/animation/animater'
+#     else:
+#         directory_path = 'animation/animater'
+#
+#     # Update sys.path if the directory exists
+#     if os.path.exists(directory_path):
+#         sys.path.insert(0, directory_path)
+#
+#
+# # Call the function to update sys.path
+# update_sys_path()
 
 
 class LatentToVideoPipeline(TextToVideoSDPipeline):
@@ -131,7 +131,6 @@ class LatentToVideoPipeline(TextToVideoSDPipeline):
         width = width or self.unet.config.sample_size * self.vae_scale_factor
 
         num_images_per_prompt = 1
-        image_processor = self.image_processor
         # 1. Check inputs. Raise error if not correct
         self.check_inputs(
             prompt, height, width, callback_steps, negative_prompt, prompt_embeds, negative_prompt_embeds

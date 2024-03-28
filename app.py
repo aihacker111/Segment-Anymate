@@ -49,7 +49,7 @@ class AnimateController:
         if os.path.exists(ld_models_path) or model_type in models_urls['ld_models']:
             return 'Animate Models is already exists'
         # Check if ld_models exist, if not, download them
-        if not os.path.exists(ld_models_path):
+        if not os.path.exists(ld_models_path) and model_type in models_urls['ld_models']:
             os.makedirs(ld_models_path, exist_ok=True)
             ld_models_name = os.path.join(ld_models_path, 'ld_models.tar')
             logger.info("Downloading LD models...")

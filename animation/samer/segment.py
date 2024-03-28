@@ -9,7 +9,7 @@ from animation.samer.seg_anything import draw_mask
 
 
 class SegMent:
-    def __init__(self, sam_args) -> None:
+    def __init__(self, sam_args):
         self.sam = Segmentor(sam_args)
         self.reference_objs_list = []
         self.object_idx = 1

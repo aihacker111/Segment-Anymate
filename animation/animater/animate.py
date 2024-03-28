@@ -20,6 +20,7 @@ from einops import rearrange
 from animation.animater.models import LatentToVideoPipeline, UNet3DConditionModel
 from animation.animater.utils import calculate_motion_precision, calculate_latent_motion_score, \
     DDPM_forward_timesteps, tensor_to_vae_latent
+from animation.logger import logger
 
 
 class Function:
@@ -49,7 +50,7 @@ class Function:
                         self.set_processors([m.attn1, m.attn2])
                         optim_count += 1
         if optim_count > 0:
-            print(f"{optim_count} Attention layers using Scaled Dot Product Attention.")
+            logger.info(f"{optim_count} Attention layers using Scaled Dot Product Attention.")
 
     def handle_memory_attention(self, enable_xformers_memory_efficient_attention, enable_torch_2_attn, unet):
         try:
@@ -67,7 +68,7 @@ class Function:
             if enable_torch_2:
                 self.set_torch_2_attn(unet)
         except:
-            print("Could not enable memory efficient attention for xformers or Torch 2.0.")
+            logger.info("Could not enable memory efficient attention for xformers or Torch 2.0.")
 
 
 class PrimaryModels(Function):
@@ -109,7 +110,7 @@ class GenerativeMotion(PrimaryModels):
         self.height = height
         self.width = width
 
-    def load_data(self):
+    def load_data(self, num_frames, num_inference_steps, guidance_scale, fps):
         validation_data = {
             'prompt_image': self.prompt_image,
             'prompt': self.prompt,
@@ -117,10 +118,10 @@ class GenerativeMotion(PrimaryModels):
             'height': self.height,
             'width': self.width,
             'sample_preview': True,
-            'num_frames': 16,
-            'num_inference_steps': 25,
-            'guidance_scale': 9,
-            'fps': 8
+            'num_frames': num_frames,
+            'num_inference_steps': num_inference_steps,
+            'guidance_scale': guidance_scale,
+            'fps': fps
         }
         return validation_data
 
@@ -130,7 +131,7 @@ class GenerativeMotion(PrimaryModels):
             if model is not None: model.requires_grad_(False)
 
     @staticmethod
-    def eval(pipeline, vae_processor, validation_data, out_file, index, forward_t=25, preview=True):
+    def eval(pipeline, vae_processor, validation_data, out_file, index, forward_t=35, preview=True):
         vae = pipeline.vae
         diffusion_scheduler = pipeline.scheduler
         device = vae.device
@@ -159,8 +160,8 @@ class GenerativeMotion(PrimaryModels):
         Image.fromarray(np_mask).save(out_mask_path)
 
         initial_latents, time_steps = DDPM_forward_timesteps(input_image_latents, forward_t,
-                                                            validation_data['num_frames'],
-                                                            diffusion_scheduler)
+                                                             validation_data['num_frames'],
+                                                             diffusion_scheduler)
         masks = T.ToTensor()(np_mask).to(dtype).to(device)
         # b,c,f,h,w
         _, _, _, h, w = initial_latents.shape
@@ -185,14 +186,14 @@ class GenerativeMotion(PrimaryModels):
         if preview:
             fps = validation_data['fps']
             imageio.mimwrite(out_file, video_frames, duration=int(1000 / fps), loop=0)
-            imageio.mimwrite(out_file.replace('gif', '.mp4'), video_frames, fps=fps)
+            imageio.mimwrite(out_file.replace('gif', 'mp4'), video_frames, fps=fps)
         real_motion_strength = calculate_latent_motion_score(video_latents).cpu().numpy()[0]
         precision = calculate_motion_precision(video_frames, np_mask)
-        print(
+        logger.info(
             f"save file {out_file}, motion strength {motion_strength} -> {real_motion_strength}, motion precision {precision}")
 
         del pipeline
-        torch.cuda.empty_cache() if torch.cuda.is_available() else print('CUDA is not available. Using CPU')
+        torch.cuda.empty_cache() if torch.cuda.is_available() else logger.info('CUDA is not available. Using CPU')
         return precision
 
     def batch_eval(self, unet, text_encoder, vae, vae_processor, pretrained_model_path,
@@ -211,6 +212,7 @@ class GenerativeMotion(PrimaryModels):
         diffusion_scheduler.set_timesteps(validation_data['num_inference_steps'], device=device)
         pipeline.scheduler = diffusion_scheduler
         motion_precision = 0
+        best_out_file = ""
         for t in range(iters):
             name = os.path.basename(validation_data['prompt_image'])
             out_file_dir = f"{output_dir}/{name.split('.')[0]}"
@@ -220,12 +222,19 @@ class GenerativeMotion(PrimaryModels):
                                   validation_data, out_file, t, forward_t=validation_data['num_inference_steps'],
                                   preview=preview)
             motion_precision += precision
+            if np.amax(precision):
+                best_out_file = out_file.replace('gif', 'mp4')
         motion_precision = motion_precision / iters
-        print(validation_data['prompt_image'], "precision", motion_precision)
+        logger.info(validation_data['prompt_image'], "precision", motion_precision)
         del pipeline
+        return best_out_file
 
     def render(
             self,
+            num_frames,
+            num_inference_steps,
+            guidance_scale,
+            fps,
             enable_xformers_memory_efficient_attention: bool = False,
             enable_torch_2_attn: bool = False,
             seed=None
@@ -233,7 +242,7 @@ class GenerativeMotion(PrimaryModels):
         if seed is not None:
             set_seed(seed)
 
-        validation_data = self.load_data()
+        validation_data = self.load_data(num_frames, num_inference_steps, guidance_scale, fps)
         _, _, text_encoder, vae, unet = self.load_primary_models()
         vae_processor = VaeImageProcessor()
         # Freeze any necessary models
@@ -255,8 +264,9 @@ class GenerativeMotion(PrimaryModels):
         os.makedirs(output_path, exist_ok=True)
         self.cast_to_gpu_and_type(models_to_cast, torch.device("cuda") if torch.cuda.is_available() else 'cpu',
                                   weight_dtype)
-        self.batch_eval(unet, text_encoder, vae, vae_processor, self.pretrained_model_path,
-                        validation_data, output_path, True)
+        final_vid = self.batch_eval(unet, text_encoder, vae, vae_processor, self.pretrained_model_path,
+                                    validation_data, output_path, True)
+        return final_vid
 
 
 if __name__ == "__main__":

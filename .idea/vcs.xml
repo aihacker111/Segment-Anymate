@@ -2,9 +2,5 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/animate-anything" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/decord" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/decord/3rdparty/dlpack" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/decord/3rdparty/dmlc-core" vcs="Git" />
   </component>
 </project>

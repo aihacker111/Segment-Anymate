@@ -17,8 +17,8 @@ from diffusers.models.attention_processor import AttnProcessor2_0
 from diffusers.models.attention import BasicTransformerBlock
 from transformers import CLIPTextModel, CLIPTokenizer
 from einops import rearrange
-from animation.animater.models import LatentToVideoPipeline, UNet3DConditionModel
-from animation.animater.utils import calculate_motion_precision, calculate_latent_motion_score, \
+from animation.animater.animate_anything.models import LatentToVideoPipeline, UNet3DConditionModel
+from animation.animater.animate_anything.utils import calculate_motion_precision, calculate_latent_motion_score, \
     DDPM_forward_timesteps, tensor_to_vae_latent
 from animation.logger import logger
 
@@ -110,7 +110,7 @@ class GenerativeMotion(PrimaryModels):
         self.height = height
         self.width = width
 
-    def load_data(self, num_frames, num_inference_steps, guidance_scale, fps):
+    def load_data(self, num_frames, num_inference_steps, guidance_scale, fps, strength):
         validation_data = {
             'prompt_image': self.prompt_image,
             'prompt': self.prompt,
@@ -121,7 +121,8 @@ class GenerativeMotion(PrimaryModels):
             'num_frames': num_frames,
             'num_inference_steps': num_inference_steps,
             'guidance_scale': guidance_scale,
-            'fps': fps
+            'fps': fps,
+            'strength': strength
         }
         return validation_data
 
@@ -235,6 +236,7 @@ class GenerativeMotion(PrimaryModels):
             num_inference_steps,
             guidance_scale,
             fps,
+            strength,
             enable_xformers_memory_efficient_attention: bool = False,
             enable_torch_2_attn: bool = False,
             seed=None
@@ -242,7 +244,7 @@ class GenerativeMotion(PrimaryModels):
         if seed is not None:
             set_seed(seed)
 
-        validation_data = self.load_data(num_frames, num_inference_steps, guidance_scale, fps)
+        validation_data = self.load_data(num_frames, num_inference_steps, guidance_scale, fps, strength)
         _, _, text_encoder, vae, unet = self.load_primary_models()
         vae_processor = VaeImageProcessor()
         # Freeze any necessary models

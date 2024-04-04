@@ -1,3 +1,3 @@
 from .animate import *
-from .models import *
-from .utils import *
+from animation.animater.animate_anything.models import *
+from animation.animater.animate_anything.utils import *

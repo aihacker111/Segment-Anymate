@@ -46,7 +46,7 @@ class AnimateController:
                 'vit_h': 'https://huggingface.co/segments-arnaud/sam_vit_h/resolve/main/sam_vit_h_4b8939.pth?download=true'
             }
         }
-        if os.path.exists(ld_models_path) or model_type in models_urls['ld_models']:
+        if os.path.exists(ld_models_path) and model_type in models_urls['ld_models']:
             return 'Animate Models is already exists'
         # Check if ld_models exist, if not, download them
         if not os.path.exists(ld_models_path) and model_type in models_urls['ld_models']:
@@ -249,14 +249,14 @@ class AnimateController:
         self.save_mask(refined_mask, save=True)
         return segment, masked_frame, click_stack, status
 
-    def run(self, image, text, num_frames, num_inference_steps, guidance_scale, fps):
+    def run(self, image, text, num_frames, num_inference_steps, guidance_scale, fps, strength):
         _, img_name = self.read_temp_file(image)
         pretrained_models_path = self.get_models_path(model_type=None, diffusion=True)
         generative_motion = GenerativeMotion(pretrained_model_path=pretrained_models_path, prompt_image=img_name,
                                              prompt=text,
                                              mask=self.save_mask(refined_mask=None))
         final_vid_path = generative_motion.render(num_frames=num_frames, num_inference_steps=num_inference_steps,
-                                                  guidance_scale=guidance_scale, fps=fps)
+                                                  guidance_scale=guidance_scale, fps=fps, strength=strength)
         return final_vid_path
 
 
@@ -347,6 +347,8 @@ class AnimateLaunch(AnimateController):
                                                            step=1)
                                 fps = gr.Slider(label="FPS", minimum=0, maximum=60,
                                                 value=8, step=4)
+                                strength = gr.Slider(label="Motion Strength", minimum=0, maximum=20,
+                                                value=10, step=1)
                                 download_animate_model = gr.Button(value="Download Animate Model",
                                                                    interactive=True)
                                 animate_model_type = gr.Radio(
@@ -416,7 +418,8 @@ class AnimateLaunch(AnimateController):
                         num_frames,
                         num_inference_steps,
                         guidance_scale,
-                        fps],
+                        fps,
+                        strength],
                 outputs=[
                     output_video
                 ]

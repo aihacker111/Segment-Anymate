@@ -25,7 +25,7 @@ from diffusers.models.embeddings import TimestepEmbedding, Timesteps
 from diffusers.models.modeling_utils import ModelMixin
 from diffusers.models.transformer_temporal import TransformerTemporalModel
 from einops import repeat
-from animation.animater.models.unet_3d_blocks import (
+from animation.animater.animate_anything.models.unet_3d_blocks import (
     CrossAttnDownBlock3D,
     CrossAttnUpBlock3D,
     DownBlock3D,

@@ -139,6 +139,7 @@ class GenerativeMotion(PrimaryModels):
         dtype = vae.dtype
         prompt = validation_data['prompt']
         pimg = Image.open(validation_data['prompt_image'])
+        pimg = pimg.resize((1280, 720))
         if pimg.mode == "RGBA":
             pimg = pimg.convert("RGB")
         width, height = pimg.size

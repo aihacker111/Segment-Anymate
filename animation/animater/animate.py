@@ -186,10 +186,9 @@ class GenerativeMotion(PrimaryModels):
             )
         if preview:
             fps = validation_data['fps']
-            kargs = {'macro_block_size': None}
 
-            imageio.mimwrite(out_file, video_frames, duration=int(1000 / fps), loop=0, **kargs)
-            imageio.mimwrite(out_file.replace('gif', 'mp4'), video_frames, fps=fps, **kargs)
+            imageio.mimwrite(out_file, video_frames, duration=int(1000 / fps), loop=0)
+            imageio.mimwrite(out_file.replace('gif', 'mp4'), video_frames, fps=fps)
         real_motion_strength = calculate_latent_motion_score(video_latents).cpu().numpy()[0]
         precision = calculate_motion_precision(video_frames, np_mask)
         logger.info(

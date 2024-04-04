@@ -12,7 +12,7 @@ import sys
 import os
 
 
-sys.path.insert(0, './Segment-Anymate/animation/animate_anything/animater')
+sys.path.insert(0, './Segment-Anymate/animation/animater/animate_anything')
 # def update_sys_path():
 #     """
 #     Update sys.path based on the environment.

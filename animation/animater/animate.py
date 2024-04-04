@@ -168,7 +168,7 @@ class GenerativeMotion(PrimaryModels):
         _, _, _, h, w = initial_latents.shape
         masks = T.Resize([h, w], antialias=False)(masks)
         masks = rearrange(masks, 'b h w -> b 1 1 h w')
-        motion_strength = validation_data.get("strength", index + 3)
+        motion_strength = validation_data.get("strength")
         with torch.no_grad():
             video_frames, video_latents = pipeline(
                 prompt=prompt,

@@ -1,12 +1,6 @@
 
-O
-animation/samer/seg_anything.py,2/f/2f3320f23e57201954533e679421504b6f03d573
-Q
-!animation/samer/transfer_tools.py,e/4/e493633cb5223f955c80331446f6404a76c14888
 >
 .gitattributes,2/4/24139dae656713ba861751fb2c2ac38839349a7a
-L
-animation/samer/segmentor.py,8/8/8880f8f4b76817b26af2acf621e57a54015391b3
 M
 animation/samer/model_args.py,9/5/952a6de42a4aaf8b7db105740dcdc1e298d8dcd9
 C
@@ -24,8 +18,6 @@ E
 animation/__init__.py,d/8/d85e8c110ab19efa7dd4c4dd38d5c3233ad553f1
 K
 animation/samer/__init__.py,8/1/812be8ca19073b30fc7fef7cf3742e83437d5e5f
-J
-animation/samer/segment.py,8/c/8ca375afffe52ce0bd32a8c0bfe3f37361fea957
 @
 requirements.txt,1/9/19359a61ae2446b51b549167b014da2fcf265768
 N

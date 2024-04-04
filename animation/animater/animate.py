@@ -226,7 +226,7 @@ class GenerativeMotion(PrimaryModels):
             if np.amax(precision):
                 best_out_file = out_file.replace('gif', 'mp4')
         motion_precision = motion_precision / iters
-        logger.info(validation_data['prompt_image'], "precision", motion_precision)
+        print(validation_data['prompt_image'], "precision", motion_precision)
         del pipeline
         return best_out_file
 

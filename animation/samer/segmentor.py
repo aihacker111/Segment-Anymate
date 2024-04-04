@@ -11,7 +11,7 @@ class Segmentor:
             generator_args: args for everything_generator
             gpu_id: device
         """
-        self.device = sam_args["gpu_id"] if torch.cuda.is_available() else 'cpu'
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.sam = sam_model_registry[sam_args["model_type"]](checkpoint=sam_args["sam_checkpoint"])
         self.sam.to(device=self.device)
         self.everything_generator = SamAutomaticMaskGenerator(model=self.sam, **sam_args['generator_args'])

@@ -80,18 +80,22 @@ class GenerativeMotion(AnimateModels):
         if pimg.mode == "RGBA":
             pimg = pimg.convert("RGB")
         width, height = pimg.size
-        scale = math.sqrt(width * height / (validation_data['height'] * validation_data['width']))
-        block_size = 8
-        height = round(height / scale / block_size) * block_size
-        width = round(width / scale / block_size) * block_size
+        # scale = math.sqrt(width * height / (validation_data['height'] * validation_data['width']))
+        # block_size = 8
+        # height = round(height / scale / block_size) * block_size
+        # width = round(width / scale / block_size) * block_size
         input_image = vae_processor.preprocess(pimg, height, width)
         input_image = input_image.unsqueeze(0).to(dtype).to(device)
         input_image_latents = tensor_to_vae_latent(input_image, vae)
         np_mask = Image.open(validation_data['mask'])
+        np_mask = np_mask.resize((validation_data['width'], validation_data['height']))
         np_mask = np.array(np_mask)
         np_mask[np_mask != 0] = 255
-        if np_mask.sum() == 0:
-            np_mask[:] = 255
+        np_mask = np_mask.astype('uint8')
+        # np_mask = np.array(np_mask)
+        # np_mask[np_mask != 0] = 255
+        # if np_mask.sum() == 0:
+        #     np_mask[:] = 255
         save_sample_path = os.path.join(
             self.output_dir, f"{self.sample_idx}.mp4")
         Image.fromarray(np_mask).save(self.mask)
@@ -122,7 +126,7 @@ class GenerativeMotion(AnimateModels):
             )
 
         imageio.mimwrite(save_sample_path, video_frames, fps=validation_data['fps'])
-        imageio.mimwrite(save_sample_path.replace('gif', 'mp4'), video_frames, fps=validation_data['fps'])
+        imageio.mimwrite(save_sample_path.replace('mp4', 'gif'), video_frames, fps=validation_data['fps'])
         self.sample_idx += 1
         return save_sample_path
 

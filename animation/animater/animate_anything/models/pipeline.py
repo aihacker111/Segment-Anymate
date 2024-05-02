@@ -1,6 +1,7 @@
+import os.path
 from typing import Callable, Dict, List, Optional, Union
 from einops import repeat
-from diffusers import TextToVideoSDPipeline, StableVideoDiffusionPipeline
+from diffusers import TextToVideoSDPipeline, StableVideoDiffusionPipeline, AutoencoderKL
 from diffusers.pipelines.text_to_video_synthesis.pipeline_text_to_video_synth import tensor2vid, \
     TextToVideoSDPipelineOutput
 from diffusers.pipelines.stable_video_diffusion.pipeline_stable_video_diffusion import tensor2vid as svd_tensor2vid, \
@@ -9,27 +10,17 @@ from diffusers.utils.torch_utils import randn_tensor
 import PIL
 import torch
 import sys
-import os
 
+from IPython import get_ipython
 
-sys.path.insert(0, './Segment-Anymate/animation/animater/animate_anything')
-# def update_sys_path():
-#     """
-#     Update sys.path based on the environment.
-#     """
-#     # Check if running in Colab
-#     if 'google.colab' in sys.modules:
-#         directory_path = '/Segment-Anymate/animation/animater'
-#     else:
-#         directory_path = 'animation/animater'
-#
-#     # Update sys.path if the directory exists
-#     if os.path.exists(directory_path):
-#         sys.path.insert(0, directory_path)
-#
-#
-# # Call the function to update sys.path
-# update_sys_path()
+if get_ipython() is None:
+    is_colab = False
+    sys.path.insert(0, './animation/animater/animate_anything')
+    print("Running on Locally")
+else:
+    is_colab = True
+    sys.path.insert(0, './Segment-Anymate/animation/animater/animate_anything')
+    print("Running on Google Colab")
 
 
 class LatentToVideoPipeline(TextToVideoSDPipeline):

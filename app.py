@@ -39,7 +39,7 @@ class AnimateController:
         # Models URLs
         models_urls = {
             'ld_models': {
-                'latent_diffusion': 'https://cloudbook-public-production.oss-cn-shanghai.aliyuncs.com/animation/animate_anything_512_v1.02.tar'},
+                'animate_anything': 'https://cloudbook-public-production.oss-cn-shanghai.aliyuncs.com/animation/animate_anything_512_v1.02.tar'},
             'sam_models': {
                 'vit_b': 'https://huggingface.co/ybelkada/segment-anything/resolve/main/checkpoints/sam_vit_b_01ec64.pth?download=true',
                 'vit_l': 'https://huggingface.co/segments-arnaud/sam_vit_l/resolve/main/sam_vit_l_0b3195.pth?download=true',
@@ -249,13 +249,13 @@ class AnimateController:
         self.save_mask(refined_mask, save=True)
         return segment, masked_frame, click_stack, status
 
-    def run(self, image, text, num_frames, num_inference_steps, guidance_scale, fps, strength):
+    def run(self, image, text, frame_work, num_frames, num_inference_steps, guidance_scale, fps, strength):
         _, img_name = self.read_temp_file(image)
         pretrained_models_path = self.get_models_path(model_type=None, diffusion=True)
         generative_motion = GenerativeMotion(pretrained_model_path=pretrained_models_path, prompt_image=img_name,
                                              prompt=text,
                                              mask=self.save_mask(refined_mask=None))
-        final_vid_path = generative_motion.render(num_frames=num_frames, num_inference_steps=num_inference_steps,
+        final_vid_path = generative_motion.render(frame_work=frame_work,num_frames=num_frames, num_inference_steps=num_inference_steps,
                                                   guidance_scale=guidance_scale, fps=fps, strength=strength)
         return final_vid_path
 
@@ -281,16 +281,21 @@ class AnimateLaunch(AnimateController):
             segment = gr.State(None)
             with gr.Row():
                 with gr.Column():
+                    frame_work = gr.Radio(
+                        choices=["Google-Colab", "Local"],
+                        value="Google-Colab",
+                        label="Framework Usage",
+                        interactive=True)
                     tab_image_input = gr.Tab(label="Upload Image")
                     with tab_image_input:
                         input_image = gr.File(label='Input image')
 
-                with gr.Column():
+                # with gr.Column():
                     tab_click = gr.Tab(label="Segment Anything Setting")
                     with tab_click:
                         with gr.Column():
                             model_type = gr.Radio(
-                                choices=["vit_b", "vit_l", "vit_h", 'latent_diffusion'],
+                                choices=["vit_b", "vit_l", "vit_h"],
                                 value="vit_b",
                                 label="SAM Models Type",
                                 interactive=True
@@ -301,7 +306,6 @@ class AnimateLaunch(AnimateController):
                                 value="Positive",
                                 label="Point Prompt",
                                 interactive=True)
-
                             click_undo_but = gr.Button(
                                 value="Undo",
                                 interactive=True
@@ -322,41 +326,41 @@ class AnimateLaunch(AnimateController):
                                                               step=1)
                                     min_mask_region_area = gr.Slider(label="Mask Region Area", minimum=0, maximum=1000,
                                                                      value=100, step=100)
-
-                with gr.Column(scale=1):
-                    models_download = gr.Textbox(label='Models Download Status')
-                    with gr.Row():
-                        input_first_frame = gr.Image(label='Segment Result', interactive=True).style(height=350)
-                        output_video = gr.File(label="Predicted Video").style(height=350)
-                    with gr.Row():
-                        prompt_text = gr.Textbox(label='Text Prompt')
-                    with gr.Row():
-                        click_render = gr.Button(
-                            value='Render',
-                            interactive=True
-                        )
                     tab_clicks = gr.Tab(label="Animate Setting")
                     with tab_clicks:
                         with gr.Accordion("Animate Advanced Options", open=True):
                             with gr.Row():
                                 num_frames = gr.Slider(label="Number Of Frames", minimum=0, maximum=100, value=16,
                                                        step=16)
-                                num_inference_steps = gr.Slider(label="Inference Steps", minimum=0, maximum=100, value=25,
+                                num_inference_steps = gr.Slider(label="Inference Steps", minimum=0, maximum=100,
+                                                                value=25,
                                                                 step=1)
                                 guidance_scale = gr.Slider(label="Guidance Scale", minimum=1, maximum=8, value=8,
                                                            step=1)
                                 fps = gr.Slider(label="FPS", minimum=0, maximum=60,
                                                 value=8, step=4)
                                 strength = gr.Slider(label="Motion Strength", minimum=0, maximum=20,
-                                                value=10, step=1)
+                                                     value=10, step=1)
                                 download_animate_model = gr.Button(value="Download Animate Model",
                                                                    interactive=True)
                                 animate_model_type = gr.Radio(
-                                    choices=['latent_diffusion', 'animate_diff_motion'],
+                                    choices=['animate_anything', 'animate_diff'],
                                     value="vit_b",
                                     label="SAM Models Type",
                                     interactive=True
                                 )
+
+                    output_video = gr.File(label="Predicted Video")
+                    with gr.Column():
+                        prompt_text = gr.Textbox(label='Text Prompt')
+                        click_render = gr.Button(
+                            value='Render',
+                            interactive=True
+                        )
+                with gr.Column():
+                    models_download = gr.Textbox(label='Models Download Status')
+                    input_first_frame = gr.Image(label='Segment Result', interactive=True, height=500, width=700)
+
             input_image.change(
                 fn=self.get_meta_from_image,
                 inputs=[
@@ -415,6 +419,7 @@ class AnimateLaunch(AnimateController):
                 fn=self.run,
                 inputs=[input_image,
                         prompt_text,
+                        frame_work,
                         num_frames,
                         num_inference_steps,
                         guidance_scale,
@@ -429,7 +434,6 @@ class AnimateLaunch(AnimateController):
                 inputs=[animate_model_type],
                 outputs=[models_download]
             )
-
         app.queue(concurrency_count=1)
         app.launch(debug=True, share=True)
 

@@ -4,4 +4,8 @@ root_model
 output_render
 *.pyc
 debug
+.DS_Store
+data
+data_test
+segment-anymate-datasets
 

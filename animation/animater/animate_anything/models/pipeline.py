@@ -2,7 +2,7 @@ import os.path
 from typing import Callable, Dict, List, Optional, Union
 from einops import repeat
 from diffusers import TextToVideoSDPipeline, StableVideoDiffusionPipeline
-from diffusers.pipelines.text_to_video_synthesis.pipeline_text_to_video_synth import tensor2vid,VaeImageProcessor, \
+from diffusers.pipelines.text_to_video_synthesis.pipeline_text_to_video_synth import tensor2vid, \
     TextToVideoSDPipelineOutput
 from diffusers.pipelines.stable_video_diffusion.pipeline_stable_video_diffusion import tensor2vid as svd_tensor2vid, \
     StableVideoDiffusionPipelineOutput

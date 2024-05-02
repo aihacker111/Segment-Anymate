@@ -1,4 +1,5 @@
 from animation import generate_sam_args, SegMent, GenerativeMotion, logger
+import random
 import numpy as np
 import gradio as gr
 import os
@@ -273,12 +274,12 @@ class AnimateController:
         self.save_mask(refined_mask, save=True)
         return segment, masked_frame, click_stack, status
 
-    def run(self, image, text, num_frames, num_inference_steps, guidance_scale, fps, strength):
+    def run(self, image, text, num_frames, num_inference_steps, guidance_scale, fps, strength, seed):
         _, img_name = self.read_temp_file(image)
         pretrained_models_path = self.get_models_path(model_type=None, diffusion=True)
         generative_motion = GenerativeMotion(pretrained_model_path=pretrained_models_path, prompt_image=img_name,
                                              prompt=text,
-                                             mask=self.save_mask(refined_mask=None))
+                                             mask=self.save_mask(refined_mask=None), seed=seed)
         final_vid_path = generative_motion.render(num_frames=num_frames,
                                                   num_inference_steps=num_inference_steps,
                                                   guidance_scale=guidance_scale, fps=fps, strength=strength)
@@ -361,6 +362,16 @@ class AnimateLaunch(AnimateController):
                                                 value=8, step=4)
                                 strength = gr.Slider(label="Motion Strength", minimum=0, maximum=20,
                                                      value=10, step=1)
+                                with gr.Row():
+                                    seed_textbox = gr.Textbox(label="Seed", value=-1)
+                                    seed_button = gr.Button(
+                                        value="\U0001F3B2", elem_classes="toolbutton")
+                                seed_button.click(
+                                    fn=lambda x: random.randint(1, 1e8),
+                                    outputs=[seed_textbox],
+                                    queue=False
+                                )
+
                                 download_animate_model = gr.Button(value="Download Animate Model",
                                                                    interactive=True)
                                 animate_model_type = gr.Radio(
@@ -417,7 +428,8 @@ class AnimateLaunch(AnimateController):
                         num_inference_steps,
                         guidance_scale,
                         fps,
-                        strength],
+                        strength,
+                        seed_textbox],
                 outputs=[
                     output_video
                 ]

@@ -23,7 +23,7 @@ from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.utils import BaseOutput, logging
 from diffusers.models.embeddings import TimestepEmbedding, Timesteps
 from diffusers.models.modeling_utils import ModelMixin
-from diffusers.models.transformers.transformer_temporal import TransformerTemporalModel
+from diffusers.models.transformer_temporal import TransformerTemporalModel
 from einops import repeat
 from animation.animater.animate_anything.models.unet_3d_blocks import (
     CrossAttnDownBlock3D,

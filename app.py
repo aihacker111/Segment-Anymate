@@ -3,7 +3,6 @@ import numpy as np
 import gradio as gr
 import os
 import cv2
-import gdown
 from tqdm import tqdm
 import requests
 import shutil

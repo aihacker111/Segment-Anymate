@@ -30,7 +30,7 @@ cryptography==42.0.5
 cycler==0.12.1
 ddt==1.7.2
 decorator==4.4.2
-diffusers==0.27.2
+diffusers==0.24.0
 dill==0.3.8
 docutils==0.21.1
 easydict==1.9

@@ -10,7 +10,7 @@ import numpy as np
 from PIL import Image
 from accelerate.utils import set_seed
 from diffusers.models import AutoencoderKL
-from diffusers import DPMSolverMultistepScheduler, DDPMScheduler
+from diffusers import DPMSolverMultistepScheduler, DDPMScheduler, StableVideoDiffusionPipeline
 from diffusers.image_processor import VaeImageProcessor
 from diffusers.utils.import_utils import is_xformers_available
 from diffusers.models.attention_processor import AttnProcessor2_0
@@ -139,7 +139,6 @@ class GenerativeMotion(PrimaryModels):
         dtype = vae.dtype
         prompt = validation_data['prompt']
         pimg = Image.open(validation_data['prompt_image'])
-        pimg = pimg.resize((1280, 720))
         if pimg.mode == "RGBA":
             pimg = pimg.convert("RGB")
         width, height = pimg.size

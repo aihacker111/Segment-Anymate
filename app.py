@@ -4,6 +4,8 @@ import gradio as gr
 import os
 import cv2
 import gdown
+from tqdm import tqdm
+import requests
 import shutil
 import tarfile
 import warnings
@@ -36,6 +38,7 @@ class AnimateController:
         dir_path = os.path.join(os.getcwd(), 'root_model')
         ld_models_path = os.path.join(dir_path, 'ld_models')
         sam_models_path = os.path.join(dir_path, 'sam_models')
+
         # Models URLs
         models_urls = {
             'ld_models': {
@@ -46,14 +49,26 @@ class AnimateController:
                 'vit_h': 'https://huggingface.co/segments-arnaud/sam_vit_h/resolve/main/sam_vit_h_4b8939.pth?download=true'
             }
         }
+
         if os.path.exists(ld_models_path) and model_type in models_urls['ld_models']:
             return 'Animate Models is already exists'
+
         # Check if ld_models exist, if not, download them
         if not os.path.exists(ld_models_path) and model_type in models_urls['ld_models']:
             os.makedirs(ld_models_path, exist_ok=True)
             ld_models_name = os.path.join(ld_models_path, 'ld_models.tar')
             logger.info("Downloading LD models...")
-            gdown.download(models_urls['ld_models'][model_type], ld_models_name, quiet=False)
+
+            response = requests.get(models_urls['ld_models'][model_type], stream=True)
+            response.raise_for_status()  # Raise an exception for non-2xx status codes
+
+            total_size = int(response.headers.get('content-length', 0))  # Get file size from headers
+            with tqdm(total=total_size, unit="B", unit_scale=True, desc="Downloading LD models") as pbar:
+                with open(ld_models_name, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                        pbar.update(len(chunk))
+
             with tarfile.open(ld_models_name, 'r') as tar:
                 tar.extractall(path=ld_models_path)
             logger.info("Extraction complete.")
@@ -65,9 +80,18 @@ class AnimateController:
             model_url = models_urls['sam_models'][model_type]
             os.makedirs(sam_models_path, exist_ok=True)
             model_path = os.path.join(sam_models_path, model_type + '.pth')
+
             if not os.path.exists(model_path):
                 logger.info(f"Downloading {model_type} model...")
-                gdown.download(model_url, model_path, quiet=False)
+                response = requests.get(model_url, stream=True)
+                response.raise_for_status()  # Raise an exception for non-2xx status codes
+
+                total_size = int(response.headers.get('content-length', 0))  # Get file size from headers
+                with tqdm(total=total_size, unit="B", unit_scale=True, desc=f"Downloading {model_type} model") as pbar:
+                    with open(model_path, 'wb') as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                            pbar.update(len(chunk))
                 logger.info(f"{model_type} model downloaded.")
             else:
                 logger.info(f"{model_type} model already exists.")
@@ -75,7 +99,8 @@ class AnimateController:
         else:
             return logger.info(f"Invalid model type: {model_type}")
 
-    def get_models_path(self, model_type=None, segment=False, diffusion=False):
+    @staticmethod
+    def get_models_path(model_type=None, segment=False, diffusion=False):
         sam_models_path = os.path.join(os.getcwd(), 'root_model', 'sam_models')
         ld_models_path = os.path.join(os.getcwd(), 'root_model', 'ld_models', 'animate_anything_512_v1.02')
         if segment:
@@ -249,13 +274,14 @@ class AnimateController:
         self.save_mask(refined_mask, save=True)
         return segment, masked_frame, click_stack, status
 
-    def run(self, image, text, frame_work, num_frames, num_inference_steps, guidance_scale, fps, strength):
+    def run(self, image, text, num_frames, num_inference_steps, guidance_scale, fps, strength):
         _, img_name = self.read_temp_file(image)
         pretrained_models_path = self.get_models_path(model_type=None, diffusion=True)
         generative_motion = GenerativeMotion(pretrained_model_path=pretrained_models_path, prompt_image=img_name,
                                              prompt=text,
                                              mask=self.save_mask(refined_mask=None))
-        final_vid_path = generative_motion.render(frame_work=frame_work,num_frames=num_frames, num_inference_steps=num_inference_steps,
+        final_vid_path = generative_motion.render(num_frames=num_frames,
+                                                  num_inference_steps=num_inference_steps,
                                                   guidance_scale=guidance_scale, fps=fps, strength=strength)
         return final_vid_path
 
@@ -281,18 +307,13 @@ class AnimateLaunch(AnimateController):
             segment = gr.State(None)
             with gr.Row():
                 with gr.Column():
-                    frame_work = gr.Radio(
-                        choices=["Google-Colab", "Local"],
-                        value="Google-Colab",
-                        label="Framework Usage",
-                        interactive=True)
                     tab_image_input = gr.Tab(label="Upload Image")
                     with tab_image_input:
                         input_image = gr.File(label='Input image')
 
                 # with gr.Column():
-                    tab_click = gr.Tab(label="Segment Anything Setting")
-                    with tab_click:
+                    tab_segment = gr.Tab(label="Segment Anything Setting")
+                    with tab_segment:
                         with gr.Column():
                             model_type = gr.Radio(
                                 choices=["vit_b", "vit_l", "vit_h"],
@@ -326,8 +347,8 @@ class AnimateLaunch(AnimateController):
                                                               step=1)
                                     min_mask_region_area = gr.Slider(label="Mask Region Area", minimum=0, maximum=1000,
                                                                      value=100, step=100)
-                    tab_clicks = gr.Tab(label="Animate Setting")
-                    with tab_clicks:
+                    tab_animate = gr.Tab(label="Animate Setting")
+                    with tab_animate:
                         with gr.Accordion("Animate Advanced Options", open=True):
                             with gr.Row():
                                 num_frames = gr.Slider(label="Number Of Frames", minimum=0, maximum=100, value=16,
@@ -345,15 +366,13 @@ class AnimateLaunch(AnimateController):
                                                                    interactive=True)
                                 animate_model_type = gr.Radio(
                                     choices=['animate_anything', 'animate_diff'],
-                                    value="vit_b",
-                                    label="SAM Models Type",
+                                    value="animate_anything",
+                                    label="I2V Models Type",
                                     interactive=True
                                 )
-
                     output_video = gr.File(label="Predicted Video")
-                    with gr.Column():
-                        prompt_text = gr.Textbox(label='Text Prompt')
-                        click_render = gr.Button(
+                    prompt_text = gr.Textbox(label='Text Prompt')
+                    click_render = gr.Button(
                             value='Render',
                             interactive=True
                         )
@@ -369,30 +388,6 @@ class AnimateLaunch(AnimateController):
                 outputs=[
                     input_first_frame, origin_frame
                 ]
-            )
-
-            tab_image_input.select(
-                fn=self.clean,
-                inputs=[],
-                outputs=[
-                    input_image,
-                    segment,
-                    input_first_frame,
-                    origin_frame,
-                    click_stack,
-                ]
-            )
-
-            tab_click.select(
-                fn=self.init_segment,
-                inputs=[
-                    point_per_side, origin_frame, model_type, predict_iou_thresh, score_thresh,
-                    crop_n_layers, crop_n_points, min_mask_region_area
-                ],
-                outputs=[
-                    segment, input_first_frame, click_stack
-                ],
-                queue=False,
             )
             input_first_frame.select(
                 fn=self.sam_click,
@@ -419,7 +414,6 @@ class AnimateLaunch(AnimateController):
                 fn=self.run,
                 inputs=[input_image,
                         prompt_text,
-                        frame_work,
                         num_frames,
                         num_inference_steps,
                         guidance_scale,

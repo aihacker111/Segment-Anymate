@@ -199,7 +199,7 @@ class GenerativeMotion(PrimaryModels):
         torch.cuda.empty_cache() if torch.cuda.is_available() else logger.info('CUDA is not available. Using CPU')
         return precision
 
-    def batch_eval(self, frame_work, unet, text_encoder, vae, vae_processor, pretrained_model_path,
+    def batch_eval(self, unet, text_encoder, vae, vae_processor, pretrained_model_path,
                    validation_data, output_dir, preview, global_step=0, iters=6):
         device = vae.device
         unet.eval()
@@ -234,7 +234,6 @@ class GenerativeMotion(PrimaryModels):
 
     def render(
             self,
-            frame_work,
             num_frames,
             num_inference_steps,
             guidance_scale,
@@ -269,7 +268,7 @@ class GenerativeMotion(PrimaryModels):
         os.makedirs(output_path, exist_ok=True)
         self.cast_to_gpu_and_type(models_to_cast, torch.device("cuda") if torch.cuda.is_available() else 'cpu',
                                   weight_dtype)
-        final_vid = self.batch_eval(frame_work, unet, text_encoder, vae, vae_processor, self.pretrained_model_path,
+        final_vid = self.batch_eval(unet, text_encoder, vae, vae_processor, self.pretrained_model_path,
                                     validation_data, output_path, True)
         return final_vid
 

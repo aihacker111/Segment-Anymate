@@ -37,12 +37,16 @@ class AnimateController:
     def download_models(model_type):
         dir_path = os.path.join(os.getcwd(), 'root_model')
         ld_models_path = os.path.join(dir_path, 'ld_models')
+        animate_anything_path = os.path.join(ld_models_path, 'animate_anything')
+        animate_svd_path = os.path.join(ld_models_path, 'animate_svd')
         sam_models_path = os.path.join(dir_path, 'sam_models')
 
         # Models URLs
         models_urls = {
             'ld_models': {
-                'animate_anything': 'https://cloudbook-public-production.oss-cn-shanghai.aliyuncs.com/animation/animate_anything_512_v1.02.tar'},
+                'animate_anything': 'https://cloudbook-public-production.oss-cn-shanghai.aliyuncs.com/animation/animate_anything_512_v1.02.tar',
+                'animate_svd': 'https://cloudbook-public-production.oss-cn-shanghai.aliyuncs.com/animation/animate_anything_svd_v1.0.tar'
+            },
             'sam_models': {
                 'vit_b': 'https://huggingface.co/ybelkada/segment-anything/resolve/main/checkpoints/sam_vit_b_01ec64.pth?download=true',
                 'vit_l': 'https://huggingface.co/segments-arnaud/sam_vit_l/resolve/main/sam_vit_l_0b3195.pth?download=true',
@@ -50,31 +54,51 @@ class AnimateController:
             }
         }
 
-        if os.path.exists(ld_models_path) and model_type in models_urls['ld_models']:
-            return 'Animate Models is already exists'
-
+        if os.path.exists(animate_anything_path) and model_type == 'animate_anything':
+            return 'Animate Anything Models is already exists'
+        elif os.path.exists(animate_svd_path) and model_type == 'animate_svd':
+            return 'Animate SVD Models is already exists'
         # Check if ld_models exist, if not, download them
-        if not os.path.exists(ld_models_path) and model_type in models_urls['ld_models']:
-            os.makedirs(ld_models_path, exist_ok=True)
-            ld_models_name = os.path.join(ld_models_path, 'ld_models.tar')
-            logger.info("Downloading LD models...")
+        if not os.path.exists(animate_anything_path) and model_type == 'animate_anything':
+            os.makedirs(animate_anything_path, exist_ok=True)
+            ld_models_name = os.path.join(animate_anything_path, 'animate_anything_models.tar')
+            logger.info("Downloading Animate Anything models...")
 
             response = requests.get(models_urls['ld_models'][model_type], stream=True)
             response.raise_for_status()  # Raise an exception for non-2xx status codes
 
             total_size = int(response.headers.get('content-length', 0))  # Get file size from headers
-            with tqdm(total=total_size, unit="B", unit_scale=True, desc="Downloading LD models") as pbar:
+            with tqdm(total=total_size, unit="B", unit_scale=True, desc="Downloading Animate Anything models") as pbar:
                 with open(ld_models_name, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
                         pbar.update(len(chunk))
 
             with tarfile.open(ld_models_name, 'r') as tar:
-                tar.extractall(path=ld_models_path)
+                tar.extractall(path=animate_anything_path)
             logger.info("Extraction complete.")
             os.remove(ld_models_name)
-            return 'Animate Models is downloaded'
+            return 'Animate Anything Models is downloaded'
+        elif not os.path.exists(animate_svd_path) and model_type == 'animate_svd':
+            os.makedirs(animate_svd_path, exist_ok=True)
+            svd_models_name = os.path.join(animate_svd_path, 'animate_svd_models.tar')
+            logger.info("Downloading Animate SVD models...")
 
+            response = requests.get(models_urls['ld_models'][model_type], stream=True)
+            response.raise_for_status()  # Raise an exception for non-2xx status codes
+
+            total_size = int(response.headers.get('content-length', 0))  # Get file size from headers
+            with tqdm(total=total_size, unit="B", unit_scale=True, desc="Downloading Animate SVD models") as pbar:
+                with open(svd_models_name, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                        pbar.update(len(chunk))
+
+            with tarfile.open(svd_models_name, 'r') as tar:
+                tar.extractall(path=animate_svd_path)
+            logger.info("Extraction complete.")
+            os.remove(svd_models_name)
+            return 'Animate SVD Models is downloaded'
         # Download specified model type
         if model_type in models_urls['sam_models']:
             model_url = models_urls['sam_models'][model_type]
@@ -102,12 +126,18 @@ class AnimateController:
     @staticmethod
     def get_models_path(model_type=None, segment=False, diffusion=False):
         sam_models_path = os.path.join(os.getcwd(), 'root_model', 'sam_models')
-        ld_models_path = os.path.join(os.getcwd(), 'root_model', 'ld_models', 'animate_anything_512_v1.02')
+        animate_anything_models_path = os.path.join(os.getcwd(), 'root_model', 'ld_models', 'animate_anything',
+                                                    'animate_anything_512_v1.02')
+        animate_svd_models_path = os.path.join(os.getcwd(), 'root_model', 'ld_models', 'animate_svd',
+                                               'animate_anything_svd_v1.0')
+
         if segment:
             sam_args = generate_sam_args(sam_checkpoint=sam_models_path, model_type=model_type)
             return sam_args, sam_models_path
-        elif diffusion:
-            return ld_models_path
+        elif diffusion and model_type == 'animate_anything':
+            return animate_anything_models_path
+        elif diffusion and model_type == 'animate_svd':
+            return animate_svd_models_path
 
     @staticmethod
     def get_click_prompt(click_stack, point):
@@ -274,16 +304,35 @@ class AnimateController:
         self.save_mask(refined_mask, save=True)
         return segment, masked_frame, click_stack, status
 
-    def run(self, image, text, num_frames, num_inference_steps, guidance_scale, fps, strength, seed):
-        _, img_name = self.read_temp_file(image)
-        pretrained_models_path = self.get_models_path(model_type=None, diffusion=True)
-        generative_motion = GenerativeMotion(pretrained_model_path=pretrained_models_path, prompt_image=img_name,
-                                             prompt=text,
-                                             mask=self.save_mask(refined_mask=None), seed=seed)
-        final_vid_path = generative_motion.render(num_frames=num_frames,
-                                                  num_inference_steps=num_inference_steps,
-                                                  guidance_scale=guidance_scale, fps=fps, strength=strength)
-        return final_vid_path
+    def run(self, model_type, image, text, num_frames, num_inference_steps, guidance_scale, fps, strength, seed,
+            motion_bucket_id,
+            decode_chunk_size):
+        if model_type == 'animate_anything':
+            _, img_name = self.read_temp_file(image)
+            pretrained_models_path = self.get_models_path(model_type=model_type, diffusion=True)
+            generative_motion = GenerativeMotion(model_type=model_type, pretrained_model_path=pretrained_models_path,
+                                                 prompt_image=img_name,
+                                                 prompt=text,
+                                                 mask=self.save_mask(refined_mask=None), seed=seed)
+            final_vid_path = generative_motion.render(num_frames=num_frames,
+                                                      num_inference_steps=num_inference_steps,
+                                                      guidance_scale=guidance_scale, fps=fps, strength=strength,
+                                                      motion_bucket_id=motion_bucket_id,
+                                                      decode_chunk_size=decode_chunk_size)
+            return final_vid_path
+        elif model_type == 'animate_svd':
+            _, img_name = self.read_temp_file(image)
+            pretrained_models_path = self.get_models_path(model_type=model_type, diffusion=True)
+            generative_motion = GenerativeMotion(model_type=model_type, pretrained_model_path=pretrained_models_path,
+                                                 prompt_image=img_name,
+                                                 prompt=text,
+                                                 mask=self.save_mask(refined_mask=None), seed=seed)
+            final_vid_path = generative_motion.render(num_frames=num_frames,
+                                                      num_inference_steps=num_inference_steps,
+                                                      guidance_scale=guidance_scale, fps=fps, strength=strength,
+                                                      motion_bucket_id=motion_bucket_id,
+                                                      decode_chunk_size=decode_chunk_size)
+            return final_vid_path
 
 
 class AnimateLaunch(AnimateController):
@@ -311,7 +360,7 @@ class AnimateLaunch(AnimateController):
                     with tab_image_input:
                         input_image = gr.File(label='Input image')
 
-                # with gr.Column():
+                    # with gr.Column():
                     tab_segment = gr.Tab(label="Segment Anything Setting")
                     with tab_segment:
                         with gr.Column():
@@ -352,16 +401,20 @@ class AnimateLaunch(AnimateController):
                         with gr.Accordion("Animate Advanced Options", open=True):
                             with gr.Row():
                                 num_frames = gr.Slider(label="Number Of Frames", minimum=0, maximum=100, value=16,
-                                                       step=16)
+                                                       step=1)
                                 num_inference_steps = gr.Slider(label="Inference Steps", minimum=0, maximum=100,
                                                                 value=25,
                                                                 step=1)
-                                guidance_scale = gr.Slider(label="Guidance Scale", minimum=1, maximum=8, value=8,
+                                guidance_scale = gr.Slider(label="Guidance Scale", minimum=1, maximum=20, value=9,
                                                            step=1)
                                 fps = gr.Slider(label="FPS", minimum=0, maximum=60,
                                                 value=8, step=4)
                                 strength = gr.Slider(label="Motion Strength", minimum=0, maximum=20,
-                                                     value=10, step=1)
+                                                     value=5, step=1)
+                                motion_bucket_id = gr.Slider(label="Motion Bucket ID", minimum=0, maximum=200,
+                                                             value=127, step=1)
+                                decode_chunk_size = gr.Slider(label="Chunk Size", minimum=0, maximum=20,
+                                                              value=7, step=1)
                                 with gr.Row():
                                     seed_textbox = gr.Textbox(label="Seed", value=-1)
                                     seed_button = gr.Button(
@@ -375,7 +428,7 @@ class AnimateLaunch(AnimateController):
                                 download_animate_model = gr.Button(value="Download Animate Model",
                                                                    interactive=True)
                                 animate_model_type = gr.Radio(
-                                    choices=['animate_anything', 'animate_diff'],
+                                    choices=['animate_anything', 'animate_svd'],
                                     value="animate_anything",
                                     label="I2V Models Type",
                                     interactive=True
@@ -383,9 +436,9 @@ class AnimateLaunch(AnimateController):
                     output_video = gr.File(label="Predicted Video")
                     prompt_text = gr.Textbox(label='Text Prompt')
                     click_render = gr.Button(
-                            value='Render',
-                            interactive=True
-                        )
+                        value='Render',
+                        interactive=True
+                    )
                 with gr.Column():
                     models_download = gr.Textbox(label='Models Download Status')
                     input_first_frame = gr.Image(label='Segment Result', interactive=True, height=500, width=700)
@@ -422,14 +475,18 @@ class AnimateLaunch(AnimateController):
             )
             click_render.click(
                 fn=self.run,
-                inputs=[input_image,
+                inputs=[animate_model_type,
+                        input_image,
                         prompt_text,
                         num_frames,
                         num_inference_steps,
                         guidance_scale,
                         fps,
                         strength,
-                        seed_textbox],
+                        seed_textbox,
+                        motion_bucket_id,
+                        decode_chunk_size
+                        ],
                 outputs=[
                     output_video
                 ]
